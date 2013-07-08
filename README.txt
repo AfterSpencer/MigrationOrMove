@@ -1,0 +1,1 @@
+This project is a combination of two other projects I have worked on. The tasks it can accomplish are to migrate user data either from one computer to another (or from a share) or to move user data from one account to another on the same computer.
