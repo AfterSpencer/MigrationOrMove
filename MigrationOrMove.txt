@@ -1,25 +1,79 @@
 with timeout of (240 * 60) seconds
 	tell application "Finder"
 		
-		display dialog "Select location to transfer from or run Set Admin task" buttons {"Same Computer", "Another Computer or Share", "Set Admin"} default button "Another Computer or Share"
+		display dialog "Select location to transfer from or run other task" buttons {"Same Computer", "Another Computer or Share", "Other Task"} default button "Another Computer or Share"
 		set transferType to button returned of the result
 		
-		if transferType = "Set Admin" then
+		if transferType = "Other Task" then
 			
-			display dialog "Please enter the AD Username for the user:" default answer ""
-			set userName to (text returned of result)
-			set validUser to (do shell script "/usr/bin/id " & userName & " 2>/dev/null| awk '{print $1}' | cut -c1-3")
+			display dialog "Which other task?" buttons {"Set Admin", "Fix Keychain"} default button "Set Admin"
+			set transferType to button returned of result
 			
-			if validUser = "uid" then
-				do shell script ("/usr/sbin/dseditgroup -o edit -a " & userName & " -t user admin") with administrator privileges
-				display dialog userName & " has is now an admin on this system." buttons {"OK"} default button "OK"
-			else
+			if transferType = "Set Admin" then
 				
-				display dialog "Username " & userName & " doesn't seem correct
+				display dialog "Please enter the AD Username for the user:" default answer ""
+				set userName to (text returned of result)
+				set validUser to (do shell script "/usr/bin/id " & userName & " 2>/dev/null| awk '{print $1}' | cut -c1-3")
+				
+				if validUser = "uid" then
+					do shell script ("/usr/sbin/dseditgroup -o edit -a " & userName & " -t user admin") with administrator privileges
+					display dialog userName & " is now an admin on this system." buttons {"OK"} default button "OK"
+				else
+					
+					display dialog "Username " & userName & " doesn't seem correct
 		
 Please check name and/or AD Binding and try again" buttons {"OK"} default button "OK"
-				return
+					# Stupid thing!
+				end if
+			else
+				
+				
+				display dialog "Please select the Users Home Folder to fix the Keychain." buttons {"OK"} default button "OK"
+				
+				set HomeFolder to choose folder
+				
+				set HomeFolderP to POSIX path of HomeFolder
+				
+				do shell script "runtime=`/bin/date +%Y%m%d`"
+				
+				set runresult to do shell script "runtime=`/bin/date +%Y%m%d`
+	if [ -e " & HomeFolderP & "/Library/Keychains.$runtime ]  
+	then  
+	echo \"exists\" 
+	else 
+	if [ -e " & HomeFolderP & "/Library/Keychains ] 
+	then  
+	/bin/mv " & HomeFolderP & "/Library/Keychains " & HomeFolderP & "/Library/Keychains.$runtime
+	fi 
+	fi" with administrator privileges
+				
+				
+				
+				if ((runresult as string) is equal to "exists") then
+					
+					display dialog "This tool has already been run today for that user.
+Run again?" buttons {"OK", "Cancel"} default button "OK"
+					set tryagain to button returned of the result
+					
+					if tryagain = "OK" then
+						do shell script "runtime=`/bin/date +%Y%m%d`
+			/bin/rm -r " & HomeFolderP & "/Library/Keychains.$runtime
+			if [ -e " & HomeFolderP & "/Library/Keychains ] 
+			then  
+			/bin/mv " & HomeFolderP & "/Library/Keychains " & HomeFolderP & "/Library/Keychains.$runtime 
+			fi" with administrator privileges
+						display dialog "Please reboot to complete the process." buttons {"OK"} default button "OK"
+						
+					end if
+					
+					return
+					
+				else
+					display dialog "Please reboot to complete the process." buttons {"OK"} default button "OK"
+					
+				end if
 			end if
+			
 			
 		else
 			
@@ -193,3 +247,4 @@ Please check name and/or AD Binding and try again" buttons {"OK"} default button
 		end if
 	end tell
 end timeout
+
